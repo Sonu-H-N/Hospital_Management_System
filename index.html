@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Dashboard</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">✦</div>
+      <span class="logo-text">MediCore</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-item active">
+        <span class="nav-icon">⬡</span> Dashboard
+      </a>
+      <a href="pages/patients.html" class="nav-item">
+        <span class="nav-icon">◎</span> Patients
+      </a>
+      <a href="pages/doctors.html" class="nav-item">
+        <span class="nav-icon">◈</span> Doctors
+      </a>
+      <a href="pages/appointments.html" class="nav-item">
+        <span class="nav-icon">◷</span> Appointments
+      </a>
+      <a href="pages/billing.html" class="nav-item">
+        <span class="nav-icon">◆</span> Billing
+      </a>
+      <a href="pages/pharmacy.html" class="nav-item">
+        <span class="nav-icon">◉</span> Pharmacy
+      </a>
+      <a href="pages/wards.html" class="nav-item">
+        <span class="nav-icon">▣</span> Wards
+      </a>
+      <a href="pages/reports.html" class="nav-item">
+        <span class="nav-icon">◧</span> Reports
+      </a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar">AD</div>
+      <div class="user-info">
+        <div class="user-name">Dr. Admin</div>
+        <div class="user-role">Super Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+        <div class="breadcrumb">Dashboard <span>/ Overview</span></div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <span>⌕</span>
+          <input type="text" placeholder="Search patients, doctors…" id="globalSearch"/>
+        </div>
+        <div class="notif-btn" onclick="showNotif()">🔔 <span class="badge">3</span></div>
+        <div class="date-display" id="dateDisplay"></div>
+      </div>
+    </header>
+
+    <!-- Stats Row -->
+    <section class="stats-grid">
+      <div class="stat-card accent-teal">
+        <div class="stat-icon">◎</div>
+        <div class="stat-body">
+          <div class="stat-value" id="totalPatients">1,284</div>
+          <div class="stat-label">Total Patients</div>
+          <div class="stat-change up">↑ 12% this month</div>
+        </div>
+      </div>
+      <div class="stat-card accent-rose">
+        <div class="stat-icon">◈</div>
+        <div class="stat-body">
+          <div class="stat-value">48</div>
+          <div class="stat-label">Active Doctors</div>
+          <div class="stat-change up">↑ 2 new this week</div>
+        </div>
+      </div>
+      <div class="stat-card accent-amber">
+        <div class="stat-icon">◷</div>
+        <div class="stat-body">
+          <div class="stat-value" id="todayAppts">37</div>
+          <div class="stat-label">Today's Appointments</div>
+          <div class="stat-change down">↓ 5 cancelled</div>
+        </div>
+      </div>
+      <div class="stat-card accent-violet">
+        <div class="stat-icon">▣</div>
+        <div class="stat-body">
+          <div class="stat-value">142</div>
+          <div class="stat-label">Occupied Beds</div>
+          <div class="stat-change neutral">68% occupancy</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Middle Row -->
+    <section class="mid-grid">
+      <!-- Recent Appointments -->
+      <div class="card appointments-card">
+        <div class="card-header">
+          <h2>Today's Appointments</h2>
+          <a href="pages/appointments.html" class="see-all">View All →</a>
+        </div>
+        <div class="appt-list" id="apptList"></div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card quick-card">
+        <div class="card-header"><h2>Quick Actions</h2></div>
+        <div class="quick-grid">
+          <button class="quick-btn" onclick="window.location='pages/patients.html?action=new'">
+            <span>➕</span> New Patient
+          </button>
+          <button class="quick-btn" onclick="window.location='pages/appointments.html?action=new'">
+            <span>📅</span> Book Appointment
+          </button>
+          <button class="quick-btn" onclick="window.location='pages/billing.html?action=new'">
+            <span>💳</span> Generate Bill
+          </button>
+          <button class="quick-btn" onclick="window.location='pages/pharmacy.html'">
+            <span>💊</span> Dispense Medicine
+          </button>
+          <button class="quick-btn" onclick="window.location='pages/wards.html'">
+            <span>🛏️</span> Assign Bed
+          </button>
+          <button class="quick-btn" onclick="window.location='pages/reports.html'">
+            <span>📊</span> View Reports
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Row -->
+    <section class="bottom-grid">
+      <!-- Revenue Chart (canvas-based) -->
+      <div class="card chart-card">
+        <div class="card-header">
+          <h2>Monthly Revenue</h2>
+          <select id="chartYear" onchange="drawChart()">
+            <option>2026</option><option>2025</option>
+          </select>
+        </div>
+        <canvas id="revenueChart" height="180"></canvas>
+      </div>
+
+      <!-- Department Breakdown -->
+      <div class="card dept-card">
+        <div class="card-header"><h2>Department Load</h2></div>
+        <div id="deptBars"></div>
+      </div>
+
+      <!-- Recent Patients -->
+      <div class="card recent-patients-card">
+        <div class="card-header">
+          <h2>Recent Patients</h2>
+          <a href="pages/patients.html" class="see-all">See All →</a>
+        </div>
+        <div id="recentPatients"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notification Panel -->
+  <div class="notif-panel" id="notifPanel">
+    <div class="notif-header">Notifications <button onclick="hideNotif()">✕</button></div>
+    <div class="notif-item urgent">🚨 ICU Bed #3 — Critical patient update</div>
+    <div class="notif-item">📋 Lab results ready for P-1041</div>
+    <div class="notif-item">💊 Pharmacy stock low: Amoxicillin</div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

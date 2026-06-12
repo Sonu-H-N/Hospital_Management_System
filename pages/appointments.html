@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Appointments</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">✦</div><span class="logo-text">MediCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item active"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info"><div class="user-name">Dr. Admin</div><div class="user-role">Super Admin</div></div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Appointments <span>/ Schedule</span></div>
+    </div>
+    <div class="topbar-right"><div class="date-display" id="dateDisplay"></div></div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Appointments</h1>
+    <p class="page-subtitle">Book, manage and track all patient appointments</p>
+
+    <div class="page-actions">
+      <div class="filter-bar">
+        <input type="text" placeholder="🔍  Search patient or doctor…" id="searchInput" oninput="render()"/>
+        <select id="statusFilter" onchange="render()">
+          <option value="">All Status</option>
+          <option>Confirmed</option><option>Pending</option><option>Cancelled</option>
+        </select>
+        <input type="date" id="dateFilter" onchange="render()" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-family:var(--font-body);font-size:13px;outline:none"/>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">➕ Book Appointment</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Department</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="apptBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Book Appointment</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Patient *</label><select class="form-control" id="fPatient"></select></div>
+      <div class="form-group"><label>Doctor *</label><select class="form-control" id="fDoctor" onchange="autoDept()"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Date *</label><input class="form-control" type="date" id="fDate"/></div>
+      <div class="form-group"><label>Time *</label><input class="form-control" type="time" id="fTime"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Department</label><input class="form-control" id="fDept" readonly/></div>
+      <div class="form-group"><label>Type</label>
+        <select class="form-control" id="fType">
+          <option>Consultation</option><option>Follow-up</option><option>Emergency</option><option>Routine</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Status</label>
+      <select class="form-control" id="fStatus"><option>Confirmed</option><option>Pending</option><option>Cancelled</option></select>
+    </div>
+    <div class="form-group"><label>Notes</label><input class="form-control" id="fNotes" placeholder="Optional notes"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="save()">Save Appointment</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+  let editId = null;
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    const dt = document.getElementById('dateFilter').value;
+    const data = HMS.getAppointments().filter(a =>
+      (!q || a.patient.toLowerCase().includes(q) || a.doctor.toLowerCase().includes(q)) &&
+      (!st || a.status === st) &&
+      (!dt || a.date === dt)
+    );
+    document.getElementById('apptBody').innerHTML = data.map(a => `
+      <tr>
+        <td style="color:var(--text-muted);font-size:12px">${a.id}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar" style="width:28px;height:28px;font-size:10px;background:${HMS.avatarColor(a.patient)}22;color:${HMS.avatarColor(a.patient)}">${HMS.initials(a.patient)}</div>
+            ${a.patient}
+          </div>
+        </td>
+        <td style="font-size:13px">${a.doctor}</td>
+        <td style="font-size:12.5px;color:var(--text-muted)">${a.dept}</td>
+        <td>${HMS.formatDate(a.date)}</td>
+        <td style="color:var(--accent-teal);font-weight:600">${a.time}</td>
+        <td><span style="font-size:12px;color:var(--text-secondary)">${a.type}</span></td>
+        <td><span class="badge-status badge-${a.status.toLowerCase()}">${a.status}</span></td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-secondary" onclick="editAppt('${a.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteAppt('${a.id}')">Del</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:40px">No appointments found</td></tr>`;
+  }
+
+  function populateDropdowns() {
+    document.getElementById('fPatient').innerHTML = HMS.getPatients().map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('fDoctor').innerHTML = HMS.getDoctors().map(d=>`<option value="${d.id}" data-dept="${d.dept}">${d.name}</option>`).join('');
+    autoDept();
+  }
+
+  function autoDept() {
+    const sel = document.getElementById('fDoctor');
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('fDept').value = opt ? opt.dataset.dept : '';
+  }
+
+  function openModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Book Appointment';
+    populateDropdowns();
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fTime').value = '09:00';
+    document.getElementById('fType').value = 'Consultation';
+    document.getElementById('fStatus').value = 'Confirmed';
+    document.getElementById('fNotes').value = '';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editAppt(id) {
+    editId = id;
+    const a = HMS.getAppointments().find(x=>x.id===id); if(!a) return;
+    document.getElementById('modalTitle').textContent = 'Edit Appointment';
+    populateDropdowns();
+    document.getElementById('fPatient').value = a.patientId;
+    document.getElementById('fDate').value = a.date;
+    document.getElementById('fTime').value = a.time;
+    document.getElementById('fType').value = a.type;
+    document.getElementById('fStatus').value = a.status;
+    document.getElementById('fNotes').value = a.notes||'';
+    document.getElementById('fDept').value = a.dept;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function save() {
+    const patientSel = document.getElementById('fPatient');
+    const doctorSel  = document.getElementById('fDoctor');
+    const date = document.getElementById('fDate').value;
+    const time = document.getElementById('fTime').value;
+    if (!date || !time) { HMS.showToast('Date and time required','error'); return; }
+    const patient = patientSel.options[patientSel.selectedIndex];
+    const doctor  = doctorSel.options[doctorSel.selectedIndex];
+    const appts = HMS.getAppointments();
+    const data = {
+      patient: patient.text, patientId: patient.value,
+      doctor: doctor.text,
+      dept: document.getElementById('fDept').value,
+      date, time,
+      type:   document.getElementById('fType').value,
+      status: document.getElementById('fStatus').value,
+      notes:  document.getElementById('fNotes').value,
+    };
+    if (editId) {
+      const idx = appts.findIndex(a=>a.id===editId);
+      appts[idx] = {...appts[idx],...data};
+      HMS.showToast('Appointment updated');
+    } else {
+      data.id = HMS.generateId('A', appts);
+      appts.unshift(data);
+      HMS.showToast('Appointment booked');
+    }
+    HMS.saveAppointments(appts);
+    closeModal(); render();
+  }
+
+  function deleteAppt(id) {
+    if (!confirm('Cancel this appointment?')) return;
+    HMS.saveAppointments(HMS.getAppointments().filter(a=>a.id!==id));
+    HMS.showToast('Appointment removed'); render();
+  }
+
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+  if (new URLSearchParams(location.search).get('action')==='new') openModal();
+  render();
+</script>
+</body>
+</html>

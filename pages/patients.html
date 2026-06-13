@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Patients</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">✦</div>
+    <span class="logo-text">MediCore</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item active"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info">
+      <div class="user-name">Dr. Admin</div>
+      <div class="user-role">Super Admin</div>
+    </div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Patients <span>/ All Patients</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="date-display" id="dateDisplay"></div>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Patient Records</h1>
+    <p class="page-subtitle">Manage and track all patient information</p>
+
+    <div class="page-actions">
+      <div class="filter-bar">
+        <input type="text" placeholder="🔍  Search by name, ID, or department…" id="searchInput" oninput="filterPatients()"/>
+        <select id="statusFilter" onchange="filterPatients()">
+          <option value="">All Status</option>
+          <option>Active</option>
+          <option>Admitted</option>
+          <option>Critical</option>
+          <option>Discharged</option>
+        </select>
+        <select id="deptFilter" onchange="filterPatients()">
+          <option value="">All Departments</option>
+          <option>Cardiology</option>
+          <option>Orthopedics</option>
+          <option>Neurology</option>
+          <option>Gynecology</option>
+          <option>Oncology</option>
+          <option>Dermatology</option>
+          <option>Pediatrics</option>
+          <option>ENT</option>
+          <option>Urology</option>
+          <option>Gastroenterology</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openAddModal()">➕ Add Patient</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>ID</th>
+            <th>Age / Gender</th>
+            <th>Blood</th>
+            <th>Department</th>
+            <th>Doctor</th>
+            <th>Admitted</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody"></tbody>
+      </table>
+    </div>
+    <div id="pagination" style="display:flex;gap:8px;margin-top:16px;align-items:center;justify-content:flex-end;flex-wrap:wrap"></div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add New Patient</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input class="form-control" type="text" id="fName" placeholder="Patient full name"/>
+      </div>
+      <div class="form-group">
+        <label>Age *</label>
+        <input class="form-control" type="number" id="fAge" min="0" max="120" placeholder="Age"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Gender</label>
+        <select class="form-control" id="fGender">
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Blood Group</label>
+        <select class="form-control" id="fBlood">
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Phone</label>
+        <input class="form-control" type="tel" id="fPhone" placeholder="10-digit mobile"/>
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <select class="form-control" id="fDept">
+          <option>Cardiology</option><option>Orthopedics</option><option>Neurology</option>
+          <option>Gynecology</option><option>Oncology</option><option>Dermatology</option>
+          <option>Pediatrics</option><option>ENT</option><option>Urology</option>
+          <option>Gastroenterology</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Assigned Doctor</label>
+        <select class="form-control" id="fDoctor"></select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select class="form-control" id="fStatus">
+          <option>Active</option><option>Admitted</option><option>Critical</option><option>Discharged</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Admission Date</label>
+      <input class="form-control" type="date" id="fDate"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePatient()">Save Patient</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal-overlay" id="viewOverlay">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <h3>Patient Details</h3>
+      <button class="modal-close" onclick="document.getElementById('viewOverlay').classList.remove('open')">✕</button>
+    </div>
+    <div id="viewContent"></div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+  let editId = null;
+  let currentPage = 1;
+  const perPage = 8;
+
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  function getFiltered() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    const dp = document.getElementById('deptFilter').value;
+    return HMS.getPatients().filter(p =>
+      (!q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q)) &&
+      (!st || p.status === st) &&
+      (!dp || p.dept === dp)
+    );
+  }
+
+  function renderTable() {
+    const data = getFiltered();
+    const start = (currentPage - 1) * perPage;
+    const page = data.slice(start, start + perPage);
+    const tbody = document.getElementById('patientTableBody');
+    tbody.innerHTML = page.map(p => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar" style="background:${HMS.avatarColor(p.name)}22;color:${HMS.avatarColor(p.name)}">${HMS.initials(p.name)}</div>
+            <span>${p.name}</span>
+          </div>
+        </td>
+        <td style="color:var(--text-muted);font-size:12px">${p.id}</td>
+        <td>${p.age} / ${p.gender}</td>
+        <td><span style="color:var(--accent-rose);font-weight:600">${p.blood}</span></td>
+        <td>${p.dept}</td>
+        <td style="font-size:12.5px;color:var(--text-secondary)">${p.doctor}</td>
+        <td style="font-size:12.5px;color:var(--text-muted)">${HMS.formatDate(p.admitted)}</td>
+        <td><span class="badge-status badge-${p.status.toLowerCase()}">${p.status}</span></td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-secondary" onclick="viewPatient('${p.id}')">View</button>
+            <button class="btn btn-sm btn-secondary" onclick="editPatient('${p.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deletePatient('${p.id}')">Del</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:40px">No patients found</td></tr>`;
+
+    renderPagination(data.length);
+  }
+
+  function renderPagination(total) {
+    const pages = Math.ceil(total / perPage);
+    const el = document.getElementById('pagination');
+    el.innerHTML = '';
+    if (pages <= 1) return;
+    const info = document.createElement('span');
+    info.style.cssText = 'color:var(--text-muted);font-size:12px;margin-right:8px';
+    info.textContent = `Page ${currentPage} of ${pages}`;
+    el.appendChild(info);
+    for (let i = 1; i <= pages; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm ' + (i === currentPage ? 'btn-primary' : 'btn-secondary');
+      btn.textContent = i;
+      btn.onclick = () => { currentPage = i; renderTable(); };
+      el.appendChild(btn);
+    }
+  }
+
+  function filterPatients() { currentPage = 1; renderTable(); }
+
+  function populateDoctors() {
+    const sel = document.getElementById('fDoctor');
+    sel.innerHTML = HMS.getDoctors().map(d => `<option>${d.name}</option>`).join('');
+  }
+
+  function openAddModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Add New Patient';
+    ['fName','fAge','fPhone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fGender').value = 'Male';
+    document.getElementById('fBlood').value = 'A+';
+    document.getElementById('fStatus').value = 'Active';
+    populateDoctors();
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editPatient(id) {
+    editId = id;
+    const p = HMS.getPatients().find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('modalTitle').textContent = 'Edit Patient';
+    document.getElementById('fName').value = p.name;
+    document.getElementById('fAge').value = p.age;
+    document.getElementById('fGender').value = p.gender;
+    document.getElementById('fBlood').value = p.blood;
+    document.getElementById('fPhone').value = p.phone;
+    document.getElementById('fDept').value = p.dept;
+    document.getElementById('fStatus').value = p.status;
+    document.getElementById('fDate').value = p.admitted;
+    populateDoctors();
+    document.getElementById('fDoctor').value = p.doctor;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function savePatient() {
+    const name = document.getElementById('fName').value.trim();
+    const age  = document.getElementById('fAge').value;
+    if (!name || !age) { HMS.showToast('Name and age are required', 'error'); return; }
+    const patients = HMS.getPatients();
+    const data = {
+      name, age: parseInt(age),
+      gender:  document.getElementById('fGender').value,
+      blood:   document.getElementById('fBlood').value,
+      phone:   document.getElementById('fPhone').value,
+      dept:    document.getElementById('fDept').value,
+      doctor:  document.getElementById('fDoctor').value,
+      status:  document.getElementById('fStatus').value,
+      admitted:document.getElementById('fDate').value
+    };
+    if (editId) {
+      const idx = patients.findIndex(p => p.id === editId);
+      patients[idx] = { ...patients[idx], ...data };
+      HMS.showToast('Patient updated successfully');
+    } else {
+      data.id = HMS.generateId('P', patients);
+      patients.unshift(data);
+      HMS.showToast('Patient added successfully');
+    }
+    HMS.savePatients(patients);
+    closeModal();
+    renderTable();
+  }
+
+  function deletePatient(id) {
+    if (!confirm('Delete this patient record?')) return;
+    HMS.savePatients(HMS.getPatients().filter(p => p.id !== id));
+    HMS.showToast('Patient deleted');
+    renderTable();
+  }
+
+  function viewPatient(id) {
+    const p = HMS.getPatients().find(x => x.id === id);
+    if (!p) return;
+    const c = HMS.avatarColor(p.name);
+    document.getElementById('viewContent').innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+        <div class="avatar" style="width:56px;height:56px;font-size:18px;background:${c}22;color:${c}">${HMS.initials(p.name)}</div>
+        <div>
+          <div style="font-size:20px;font-weight:600">${p.name}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${p.id} · ${p.dept}</div>
+        </div>
+        <span class="badge-status badge-${p.status.toLowerCase()}" style="margin-left:auto">${p.status}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${[
+          ['Age',       p.age + ' years'],
+          ['Gender',    p.gender],
+          ['Blood Group', p.blood],
+          ['Phone',     p.phone],
+          ['Admitted',  HMS.formatDate(p.admitted)],
+          ['Doctor',    p.doctor],
+        ].map(([k,v]) => `
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${k}</div>
+            <div style="font-size:14px;font-weight:500">${v}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    document.getElementById('viewOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  // Auto-open add if URL param
+  if (new URLSearchParams(location.search).get('action') === 'new') openAddModal();
+
+  renderTable();
+</script>
+</body>
+</html>

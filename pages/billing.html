@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Billing</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    .bill-items-editor { display:flex; flex-direction:column; gap:8px; }
+    .bill-item-row { display:grid; grid-template-columns:1fr 80px 32px; gap:8px; align-items:center; }
+    .bill-total-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0 0; border-top:1px solid var(--border); margin-top:8px; font-weight:600; }
+    .invoice-view { font-family:var(--font-body); }
+    .inv-header { display:flex; justify-content:space-between; margin-bottom:24px; }
+    .inv-title { font-family:var(--font-display); font-size:28px; color:var(--accent-teal); }
+    .inv-table { width:100%; border-collapse:collapse; margin:16px 0; }
+    .inv-table th { text-align:left; padding:8px 12px; background:var(--bg-secondary); font-size:12px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px; }
+    .inv-table td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:13.5px; }
+    .inv-total { text-align:right; font-size:18px; font-weight:700; color:var(--accent-teal); margin-top:12px; }
+  </style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">✦</div><span class="logo-text">MediCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item active"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info"><div class="user-name">Dr. Admin</div><div class="user-role">Super Admin</div></div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Billing <span>/ Invoices</span></div>
+    </div>
+    <div class="topbar-right"><div class="date-display" id="dateDisplay"></div></div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Billing & Invoices</h1>
+    <p class="page-subtitle">Create and manage patient bills and payment records</p>
+
+    <!-- Summary Cards -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px">
+      <div class="card" style="padding:18px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total Revenue</div>
+        <div style="font-family:var(--font-display);font-size:26px;color:var(--accent-teal)" id="totalRev">—</div>
+      </div>
+      <div class="card" style="padding:18px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Pending Amount</div>
+        <div style="font-family:var(--font-display);font-size:26px;color:var(--accent-amber)" id="pendingRev">—</div>
+      </div>
+      <div class="card" style="padding:18px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Total Bills</div>
+        <div style="font-family:var(--font-display);font-size:26px" id="totalBills">—</div>
+      </div>
+    </div>
+
+    <div class="page-actions">
+      <div class="filter-bar">
+        <input type="text" placeholder="🔍  Search by patient or bill ID…" id="searchInput" oninput="render()"/>
+        <select id="paidFilter" onchange="render()">
+          <option value="">All</option><option value="paid">Paid</option><option value="unpaid">Unpaid</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">➕ New Bill</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Bill ID</th><th>Patient</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Pay Mode</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="billBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Create/Edit Bill Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <h3 id="modalTitle">New Bill</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Patient *</label><select class="form-control" id="fPatient"></select></div>
+      <div class="form-group"><label>Date</label><input class="form-control" type="date" id="fDate"/></div>
+    </div>
+    <div class="form-group"><label>Bill Items</label>
+      <div class="bill-items-editor" id="billItems"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addItem()">+ Add Item</button>
+    </div>
+    <div class="bill-total-row">
+      <span>Total Amount</span>
+      <span id="billTotal" style="color:var(--accent-teal);font-size:18px">₹ 0</span>
+    </div>
+    <div class="form-row" style="margin-top:14px">
+      <div class="form-group"><label>Payment Status</label>
+        <select class="form-control" id="fPaid"><option value="false">Unpaid</option><option value="true">Paid</option></select>
+      </div>
+      <div class="form-group"><label>Payment Mode</label>
+        <select class="form-control" id="fPayMode"><option value="">—</option><option>Cash</option><option>Card</option><option>UPI</option><option>Insurance</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBill()">Save Bill</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice View Modal -->
+<div class="modal-overlay" id="invoiceOverlay">
+  <div class="modal" style="width:580px">
+    <div class="modal-header">
+      <h3>Invoice</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Print</button>
+        <button class="modal-close" onclick="document.getElementById('invoiceOverlay').classList.remove('open')">✕</button>
+      </div>
+    </div>
+    <div id="invoiceContent" class="invoice-view"></div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+  let editId = null;
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  function calcTotal() {
+    const rows = document.querySelectorAll('.bill-item-row');
+    let total = 0;
+    rows.forEach(r => { total += parseFloat(r.querySelector('.item-fee').value)||0; });
+    document.getElementById('billTotal').textContent = HMS.formatCurrency(total);
+  }
+
+  function addItem(name='', fee='') {
+    const row = document.createElement('div');
+    row.className = 'bill-item-row';
+    row.innerHTML = `
+      <input class="form-control item-name" placeholder="Item name" value="${name}" oninput="calcTotal()"/>
+      <input class="form-control item-fee" type="number" placeholder="₹" value="${fee}" oninput="calcTotal()"/>
+      <button onclick="this.parentElement.remove();calcTotal()" style="background:var(--accent-rose-dim);border:none;border-radius:6px;color:var(--accent-rose);width:32px;height:36px;cursor:pointer;font-size:14px">✕</button>
+    `;
+    document.getElementById('billItems').appendChild(row);
+    calcTotal();
+  }
+
+  function getBillTotal(bill) {
+    return bill.items.reduce((s,i)=>s+i.fee,0);
+  }
+
+  function updateSummary() {
+    const bills = HMS.getBills();
+    const paid = bills.filter(b=>b.paid).reduce((s,b)=>s+getBillTotal(b),0);
+    const unpaid = bills.filter(b=>!b.paid).reduce((s,b)=>s+getBillTotal(b),0);
+    document.getElementById('totalRev').textContent = HMS.formatCurrency(paid);
+    document.getElementById('pendingRev').textContent = HMS.formatCurrency(unpaid);
+    document.getElementById('totalBills').textContent = bills.length;
+  }
+
+  function render() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const pf = document.getElementById('paidFilter').value;
+    const data = HMS.getBills().filter(b =>
+      (!q || b.patient.toLowerCase().includes(q) || b.id.toLowerCase().includes(q)) &&
+      (!pf || (pf==='paid'?b.paid:!b.paid))
+    );
+    document.getElementById('billBody').innerHTML = data.map(b => {
+      const total = getBillTotal(b);
+      return `
+        <tr>
+          <td style="color:var(--text-muted);font-size:12px">${b.id}</td>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar" style="width:28px;height:28px;font-size:10px;background:${HMS.avatarColor(b.patient)}22;color:${HMS.avatarColor(b.patient)}">${HMS.initials(b.patient)}</div>
+            ${b.patient}</div></td>
+          <td>${HMS.formatDate(b.date)}</td>
+          <td style="font-size:12px;color:var(--text-muted)">${b.items.length} item${b.items.length!==1?'s':''}</td>
+          <td style="font-weight:600;color:var(--accent-teal)">${HMS.formatCurrency(total)}</td>
+          <td><span class="badge-status ${b.paid?'badge-active':'badge-pending'}">${b.paid?'Paid':'Pending'}</span></td>
+          <td style="font-size:12px;color:var(--text-muted)">${b.payMode||'—'}</td>
+          <td><div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-secondary" onclick="viewInvoice('${b.id}')">Invoice</button>
+            <button class="btn btn-sm btn-secondary" onclick="editBill('${b.id}')">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteBill('${b.id}')">Del</button>
+          </div></td>
+        </tr>`;
+    }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:40px">No bills found</td></tr>`;
+    updateSummary();
+  }
+
+  function openModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'New Bill';
+    document.getElementById('fPatient').innerHTML = HMS.getPatients().map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('billItems').innerHTML = '';
+    document.getElementById('fPaid').value = 'false';
+    document.getElementById('fPayMode').value = '';
+    addItem('Consultation','');
+    calcTotal();
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editBill(id) {
+    editId = id;
+    const b = HMS.getBills().find(x=>x.id===id); if(!b) return;
+    document.getElementById('modalTitle').textContent = 'Edit Bill';
+    document.getElementById('fPatient').innerHTML = HMS.getPatients().map(p=>`<option value="${p.id}" ${p.name===b.patient?'selected':''}>${p.name}</option>`).join('');
+    document.getElementById('fDate').value = b.date;
+    document.getElementById('billItems').innerHTML = '';
+    b.items.forEach(i => addItem(i.name, i.fee));
+    document.getElementById('fPaid').value = String(b.paid);
+    document.getElementById('fPayMode').value = b.payMode||'';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function saveBill() {
+    const patSel = document.getElementById('fPatient');
+    const rows = document.querySelectorAll('.bill-item-row');
+    const items = Array.from(rows).map(r=>({ name:r.querySelector('.item-name').value.trim(), fee:parseFloat(r.querySelector('.item-fee').value)||0 })).filter(i=>i.name);
+    if (!items.length) { HMS.showToast('Add at least one item','error'); return; }
+    const bills = HMS.getBills();
+    const paid = document.getElementById('fPaid').value === 'true';
+    const data = {
+      patient: patSel.options[patSel.selectedIndex].text,
+      patientId: patSel.value,
+      date: document.getElementById('fDate').value,
+      items, paid,
+      payMode: paid ? document.getElementById('fPayMode').value : ''
+    };
+    if (editId) {
+      const idx = bills.findIndex(b=>b.id===editId);
+      bills[idx] = {...bills[idx],...data};
+      HMS.showToast('Bill updated');
+    } else {
+      data.id = HMS.generateId('B', bills);
+      bills.unshift(data);
+      HMS.showToast('Bill created');
+    }
+    HMS.saveBills(bills);
+    closeModal(); render();
+  }
+
+  function deleteBill(id) {
+    if(!confirm('Delete this bill?')) return;
+    HMS.saveBills(HMS.getBills().filter(b=>b.id!==id));
+    HMS.showToast('Bill deleted'); render();
+  }
+
+  function viewInvoice(id) {
+    const b = HMS.getBills().find(x=>x.id===id); if(!b) return;
+    const total = getBillTotal(b);
+    document.getElementById('invoiceContent').innerHTML = `
+      <div class="inv-header">
+        <div>
+          <div class="inv-title">INVOICE</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${b.id}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:600;font-size:15px">MediCore Hospital</div>
+          <div style="font-size:12px;color:var(--text-muted)">Bengaluru, Karnataka</div>
+          <div style="font-size:12px;color:var(--text-muted)">GSTIN: 29ABCDE1234F1Z5</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div>
+          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:4px">Billed To</div>
+          <div style="font-weight:600">${b.patient}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${b.patientId}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:4px">Invoice Date</div>
+          <div style="font-weight:600">${HMS.formatDate(b.date)}</div>
+          <span class="badge-status ${b.paid?'badge-active':'badge-pending'}" style="margin-top:6px;display:inline-block">${b.paid?'PAID':'PENDING'}</span>
+        </div>
+      </div>
+      <table class="inv-table">
+        <thead><tr><th>#</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody>
+          ${b.items.map((item,i)=>`<tr><td style="color:var(--text-muted)">${i+1}</td><td>${item.name}</td><td style="text-align:right;font-weight:500">${HMS.formatCurrency(item.fee)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="inv-total">Total: ${HMS.formatCurrency(total)}</div>
+      ${b.paid?`<div style="font-size:12px;color:var(--text-muted);text-align:right;margin-top:4px">Paid via ${b.payMode}</div>`:''}
+    `;
+    document.getElementById('invoiceOverlay').classList.add('open');
+  }
+
+  function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+  if(new URLSearchParams(location.search).get('action')==='new') openModal();
+  render();
+</script>
+</body>
+</html>

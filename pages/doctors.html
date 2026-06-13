@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Doctors</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    .doctor-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+    .doctor-card {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
+      padding:22px; text-align:center; transition:all var(--transition); animation: fadeUp 0.3s ease both;
+    }
+    .doctor-card:hover { transform:translateY(-3px); border-color:var(--border-light); box-shadow:var(--shadow-card); }
+    .doc-avatar {
+      width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      font-size:22px; font-weight:700; margin:0 auto 12px;
+    }
+    .doc-name { font-size:15px; font-weight:600; margin-bottom:3px; }
+    .doc-spec { font-size:12px; color:var(--text-muted); margin-bottom:12px; }
+    .doc-stats { display:flex; justify-content:center; gap:20px; margin-bottom:14px; }
+    .doc-stat { text-align:center; }
+    .doc-stat-val { font-size:18px; font-weight:700; font-family:var(--font-display); }
+    .doc-stat-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; }
+    .doc-actions { display:flex; gap:8px; justify-content:center; }
+  </style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">✦</div><span class="logo-text">MediCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item active"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info"><div class="user-name">Dr. Admin</div><div class="user-role">Super Admin</div></div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Doctors <span>/ All Doctors</span></div>
+    </div>
+    <div class="topbar-right"><div class="date-display" id="dateDisplay"></div></div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Medical Staff</h1>
+    <p class="page-subtitle">Manage doctors, schedules, and specializations</p>
+
+    <div class="page-actions">
+      <div class="filter-bar">
+        <input type="text" placeholder="🔍  Search by name or specialization…" id="searchInput" oninput="renderDoctors()"/>
+        <select id="statusFilter" onchange="renderDoctors()">
+          <option value="">All Status</option>
+          <option>Active</option>
+          <option>On Leave</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">➕ Add Doctor</button>
+    </div>
+
+    <div class="doctor-grid" id="doctorGrid"></div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add New Doctor</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Full Name *</label><input class="form-control" id="fName" placeholder="Dr. Full Name"/></div>
+      <div class="form-group"><label>Specialization *</label><input class="form-control" id="fSpec" placeholder="e.g. Cardiology"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Department</label><select class="form-control" id="fDept">
+        <option>Cardiology</option><option>Orthopedics</option><option>Neurology</option><option>Gynecology</option>
+        <option>Oncology</option><option>Dermatology</option><option>Pediatrics</option><option>ENT</option>
+        <option>Urology</option><option>Gastroenterology</option>
+      </select></div>
+      <div class="form-group"><label>Experience (yrs)</label><input class="form-control" type="number" id="fExp" placeholder="Years"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Phone</label><input class="form-control" id="fPhone" placeholder="Mobile number"/></div>
+      <div class="form-group"><label>Email</label><input class="form-control" type="email" id="fEmail" placeholder="Email address"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Consultation Fee (₹)</label><input class="form-control" type="number" id="fFee" placeholder="Fee"/></div>
+      <div class="form-group"><label>Schedule</label><input class="form-control" id="fSchedule" placeholder="e.g. Mon–Fri"/></div>
+    </div>
+    <div class="form-group"><label>Status</label>
+      <select class="form-control" id="fStatus"><option>Active</option><option>On Leave</option></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDoctor()">Save Doctor</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+  let editId = null;
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  function renderDoctors() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    const docs = HMS.getDoctors().filter(d =>
+      (!q || d.name.toLowerCase().includes(q) || d.specialization.toLowerCase().includes(q)) &&
+      (!st || d.status === st)
+    );
+    const grid = document.getElementById('doctorGrid');
+    grid.innerHTML = docs.map((d,i) => {
+      const c = HMS.avatarColor(d.name);
+      return `
+      <div class="doctor-card" style="animation-delay:${i*0.05}s">
+        <div class="doc-avatar" style="background:${c}22;color:${c}">${HMS.initials(d.name)}</div>
+        <div class="doc-name">${d.name}</div>
+        <div class="doc-spec">${d.specialization} · ${d.dept}</div>
+        <span class="badge-status ${d.status==='Active'?'badge-active':'badge-pending'}" style="margin-bottom:14px;display:inline-block">${d.status}</span>
+        <div class="doc-stats">
+          <div class="doc-stat"><div class="doc-stat-val" style="color:${c}">${d.experience}</div><div class="doc-stat-label">Yrs Exp</div></div>
+          <div class="doc-stat"><div class="doc-stat-val">${d.patients}</div><div class="doc-stat-label">Patients</div></div>
+          <div class="doc-stat"><div class="doc-stat-val">₹${d.fee}</div><div class="doc-stat-label">Fee</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">${d.schedule}</div>
+        <div class="doc-actions">
+          <button class="btn btn-sm btn-secondary" onclick="editDoctor('${d.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteDoctor('${d.id}')">Delete</button>
+        </div>
+      </div>`;
+    }).join('') || '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">No doctors found</p>';
+  }
+
+  function openModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Add New Doctor';
+    ['fName','fSpec','fPhone','fEmail','fFee','fSchedule','fExp'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('fStatus').value = 'Active';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editDoctor(id) {
+    editId = id;
+    const d = HMS.getDoctors().find(x=>x.id===id); if (!d) return;
+    document.getElementById('modalTitle').textContent = 'Edit Doctor';
+    document.getElementById('fName').value = d.name;
+    document.getElementById('fSpec').value = d.specialization;
+    document.getElementById('fDept').value = d.dept;
+    document.getElementById('fExp').value = d.experience;
+    document.getElementById('fPhone').value = d.phone;
+    document.getElementById('fEmail').value = d.email;
+    document.getElementById('fFee').value = d.fee;
+    document.getElementById('fSchedule').value = d.schedule;
+    document.getElementById('fStatus').value = d.status;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function saveDoctor() {
+    const name = document.getElementById('fName').value.trim();
+    const spec = document.getElementById('fSpec').value.trim();
+    if (!name || !spec) { HMS.showToast('Name and specialization required','error'); return; }
+    const doctors = HMS.getDoctors();
+    const data = {
+      name, specialization:spec,
+      dept: document.getElementById('fDept').value,
+      experience: parseInt(document.getElementById('fExp').value)||0,
+      phone: document.getElementById('fPhone').value,
+      email: document.getElementById('fEmail').value,
+      fee: parseInt(document.getElementById('fFee').value)||0,
+      schedule: document.getElementById('fSchedule').value,
+      status: document.getElementById('fStatus').value,
+      patients: 0
+    };
+    if (editId) {
+      const idx = doctors.findIndex(d=>d.id===editId);
+      data.patients = doctors[idx].patients;
+      doctors[idx] = {...doctors[idx], ...data};
+      HMS.showToast('Doctor updated');
+    } else {
+      data.id = HMS.generateId('D', doctors);
+      doctors.push(data);
+      HMS.showToast('Doctor added');
+    }
+    HMS.saveDoctors(doctors);
+    closeModal();
+    renderDoctors();
+  }
+
+  function deleteDoctor(id) {
+    if (!confirm('Delete this doctor record?')) return;
+    HMS.saveDoctors(HMS.getDoctors().filter(d=>d.id!==id));
+    HMS.showToast('Doctor deleted');
+    renderDoctors();
+  }
+
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+  renderDoctors();
+</script>
+</body>
+</html>

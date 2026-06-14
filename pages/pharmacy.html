@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Pharmacy</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">✦</div><span class="logo-text">MediCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item active"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info"><div class="user-name">Dr. Admin</div><div class="user-role">Super Admin</div></div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Pharmacy <span>/ Inventory</span></div>
+    </div>
+    <div class="topbar-right"><div class="date-display" id="dateDisplay"></div></div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Pharmacy Inventory</h1>
+    <p class="page-subtitle">Manage medicine stock, dispensing and restocking</p>
+
+    <!-- Summary -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Total Medicines</div>
+        <div style="font-family:var(--font-display);font-size:24px" id="totalMeds">—</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Low Stock Alerts</div>
+        <div style="font-family:var(--font-display);font-size:24px;color:var(--accent-rose)" id="lowStock">—</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Categories</div>
+        <div style="font-family:var(--font-display);font-size:24px" id="totalCats">—</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Inventory Value</div>
+        <div style="font-family:var(--font-display);font-size:24px;color:var(--accent-teal)" id="invValue">—</div>
+      </div>
+    </div>
+
+    <div class="page-actions">
+      <div class="filter-bar">
+        <input type="text" placeholder="🔍  Search medicines…" id="searchInput" oninput="render()"/>
+        <select id="catFilter" onchange="render()">
+          <option value="">All Categories</option>
+          <option>Antibiotic</option><option>Analgesic</option><option>Antidiabetic</option>
+          <option>Antihypertensive</option><option>Statin</option><option>PPI</option>
+          <option>Antihistamine</option><option>IV Fluid</option>
+        </select>
+        <select id="stockFilter" onchange="render()">
+          <option value="">All Stock</option>
+          <option value="low">Low Stock</option>
+          <option value="ok">In Stock</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">➕ Add Medicine</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="data-table">
+        <thead>
+          <tr><th>Medicine</th><th>ID</th><th>Category</th><th>Stock</th><th>Min Stock</th><th>Price/Unit</th><th>Unit</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="medBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Medicine</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Medicine Name *</label><input class="form-control" id="fName" placeholder="Name and dosage"/></div>
+      <div class="form-group"><label>Category</label>
+        <select class="form-control" id="fCat">
+          <option>Antibiotic</option><option>Analgesic</option><option>Antidiabetic</option>
+          <option>Antihypertensive</option><option>Statin</option><option>PPI</option>
+          <option>Antihistamine</option><option>IV Fluid</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Current Stock</label><input class="form-control" type="number" id="fStock" placeholder="Units"/></div>
+      <div class="form-group"><label>Minimum Stock</label><input class="form-control" type="number" id="fMinStock" placeholder="Min units"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Price (₹)</label><input class="form-control" type="number" id="fPrice" placeholder="Per unit"/></div>
+      <div class="form-group"><label>Unit</label>
+        <select class="form-control" id="fUnit"><option>Strip</option><option>Vial</option><option>Bottle</option><option>Tablet</option><option>Injection</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMed()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dispense Modal -->
+<div class="modal-overlay" id="dispenseOverlay">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <h3>Dispense Medicine</h3>
+      <button class="modal-close" onclick="document.getElementById('dispenseOverlay').classList.remove('open')">✕</button>
+    </div>
+    <div class="form-group"><label>Medicine</label><input class="form-control" id="dMedName" readonly/></div>
+    <div class="form-group"><label>Available Stock</label><input class="form-control" id="dStock" readonly/></div>
+    <div class="form-group"><label>Patient</label><select class="form-control" id="dPatient"></select></div>
+    <div class="form-group"><label>Quantity *</label><input class="form-control" type="number" id="dQty" placeholder="Units to dispense" min="1"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('dispenseOverlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmDispense()">Dispense</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+  let editId = null, dispenseId = null;
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  function updateSummary() {
+    const meds = HMS.getMedicines();
+    const low = meds.filter(m=>m.stock<=m.minStock);
+    const val = meds.reduce((s,m)=>s+m.stock*m.price,0);
+    const cats = [...new Set(meds.map(m=>m.category))].length;
+    document.getElementById('totalMeds').textContent = meds.length;
+    document.getElementById('lowStock').textContent = low.length;
+    document.getElementById('totalCats').textContent = cats;
+    document.getElementById('invValue').textContent = HMS.formatCurrency(val);
+  }
+
+  function render() {
+    const q  = document.getElementById('searchInput').value.toLowerCase();
+    const cf = document.getElementById('catFilter').value;
+    const sf = document.getElementById('stockFilter').value;
+    const data = HMS.getMedicines().filter(m =>
+      (!q || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)) &&
+      (!cf || m.category === cf) &&
+      (!sf || (sf==='low'?m.stock<=m.minStock:m.stock>m.minStock))
+    );
+    const isLow = m => m.stock <= m.minStock;
+    document.getElementById('medBody').innerHTML = data.map(m => `
+      <tr>
+        <td><span style="font-weight:500">${m.name}</span></td>
+        <td style="color:var(--text-muted);font-size:12px">${m.id}</td>
+        <td><span style="font-size:12px;color:var(--text-secondary)">${m.category}</span></td>
+        <td style="font-weight:600;color:${isLow(m)?'var(--accent-rose)':'var(--text-primary)'}">${m.stock}</td>
+        <td style="color:var(--text-muted)">${m.minStock}</td>
+        <td style="color:var(--accent-teal)">₹ ${m.price}</td>
+        <td style="color:var(--text-muted);font-size:12px">${m.unit}</td>
+        <td><span class="badge-status ${isLow(m)?'badge-critical':'badge-active'}">${isLow(m)?'Low Stock':'In Stock'}</span></td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-secondary" onclick="openDispense('${m.id}')">Dispense</button>
+          <button class="btn btn-sm btn-secondary" onclick="restock('${m.id}')">Restock</button>
+          <button class="btn btn-sm btn-secondary" onclick="editMed('${m.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteMed('${m.id}')">Del</button>
+        </div></td>
+      </tr>
+    `).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:40px">No medicines found</td></tr>`;
+    updateSummary();
+  }
+
+  function openModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Add Medicine';
+    ['fName','fStock','fMinStock','fPrice'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fCat').value = 'Antibiotic';
+    document.getElementById('fUnit').value = 'Strip';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editMed(id) {
+    editId = id;
+    const m = HMS.getMedicines().find(x=>x.id===id); if(!m) return;
+    document.getElementById('modalTitle').textContent = 'Edit Medicine';
+    document.getElementById('fName').value = m.name;
+    document.getElementById('fCat').value = m.category;
+    document.getElementById('fStock').value = m.stock;
+    document.getElementById('fMinStock').value = m.minStock;
+    document.getElementById('fPrice').value = m.price;
+    document.getElementById('fUnit').value = m.unit;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function saveMed() {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { HMS.showToast('Medicine name required','error'); return; }
+    const meds = HMS.getMedicines();
+    const data = {
+      name,
+      category: document.getElementById('fCat').value,
+      stock: parseInt(document.getElementById('fStock').value)||0,
+      minStock: parseInt(document.getElementById('fMinStock').value)||0,
+      price: parseFloat(document.getElementById('fPrice').value)||0,
+      unit: document.getElementById('fUnit').value
+    };
+    if (editId) {
+      const idx = meds.findIndex(m=>m.id===editId);
+      meds[idx] = {...meds[idx],...data};
+      HMS.showToast('Medicine updated');
+    } else {
+      data.id = HMS.generateId('M', meds);
+      meds.push(data);
+      HMS.showToast('Medicine added');
+    }
+    HMS.saveMedicines(meds);
+    closeModal(); render();
+  }
+
+  function deleteMed(id) {
+    if(!confirm('Delete this medicine?')) return;
+    HMS.saveMedicines(HMS.getMedicines().filter(m=>m.id!==id));
+    HMS.showToast('Medicine deleted'); render();
+  }
+
+  function restock(id) {
+    const qty = parseInt(prompt('Enter restock quantity:'));
+    if (!qty || qty <= 0) return;
+    const meds = HMS.getMedicines();
+    const idx = meds.findIndex(m=>m.id===id);
+    meds[idx].stock += qty;
+    HMS.saveMedicines(meds);
+    HMS.showToast(`Restocked +${qty} units`);
+    render();
+  }
+
+  function openDispense(id) {
+    dispenseId = id;
+    const m = HMS.getMedicines().find(x=>x.id===id); if(!m) return;
+    document.getElementById('dMedName').value = m.name;
+    document.getElementById('dStock').value = m.stock + ' ' + m.unit + '(s)';
+    document.getElementById('dPatient').innerHTML = HMS.getPatients().map(p=>`<option>${p.name}</option>`).join('');
+    document.getElementById('dQty').value = '';
+    document.getElementById('dispenseOverlay').classList.add('open');
+  }
+
+  function confirmDispense() {
+    const qty = parseInt(document.getElementById('dQty').value);
+    if (!qty || qty <= 0) { HMS.showToast('Enter valid quantity','error'); return; }
+    const meds = HMS.getMedicines();
+    const idx = meds.findIndex(m=>m.id===dispenseId);
+    if (meds[idx].stock < qty) { HMS.showToast('Insufficient stock','error'); return; }
+    meds[idx].stock -= qty;
+    HMS.saveMedicines(meds);
+    HMS.showToast(`Dispensed ${qty} unit(s) of ${meds[idx].name}`);
+    document.getElementById('dispenseOverlay').classList.remove('open');
+    render();
+  }
+
+  function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+  render();
+</script>
+</body>
+</html>

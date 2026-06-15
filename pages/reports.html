@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Reports</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    .reports-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .chart-wrap { position:relative; }
+    .kpi-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+    .kpi { background:var(--bg-secondary); border-radius:var(--radius-sm); padding:14px; text-align:center; }
+    .kpi-val { font-family:var(--font-display); font-size:22px; }
+    .kpi-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-top:3px; }
+    .legend { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
+    .legend-dot { width:10px; height:10px; border-radius:50%; }
+  </style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">✦</div><span class="logo-text">MediCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item active"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info"><div class="user-name">Dr. Admin</div><div class="user-role">Super Admin</div></div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Reports <span>/ Analytics</span></div>
+    </div>
+    <div class="topbar-right"><div class="date-display" id="dateDisplay"></div></div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Reports & Analytics</h1>
+    <p class="page-subtitle">Hospital-wide performance metrics and insights</p>
+
+    <!-- KPI strip -->
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px" id="kpiStrip"></div>
+
+    <div class="reports-grid">
+      <!-- Patient Status Chart -->
+      <div class="card">
+        <div class="card-header"><h2>Patient Status Breakdown</h2></div>
+        <canvas id="statusChart" height="200"></canvas>
+        <div class="legend" id="statusLegend"></div>
+      </div>
+
+      <!-- Department Distribution -->
+      <div class="card">
+        <div class="card-header"><h2>Patients by Department</h2></div>
+        <canvas id="deptChart" height="200"></canvas>
+        <div class="legend" id="deptLegend"></div>
+      </div>
+
+      <!-- Appointments Trend -->
+      <div class="card">
+        <div class="card-header"><h2>Appointment Types</h2></div>
+        <canvas id="apptChart" height="200"></canvas>
+        <div class="legend" id="apptLegend"></div>
+      </div>
+
+      <!-- Billing Summary -->
+      <div class="card">
+        <div class="card-header"><h2>Billing Summary</h2></div>
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-val" id="bTotalRev" style="color:var(--accent-teal)">—</div><div class="kpi-label">Collected</div></div>
+          <div class="kpi"><div class="kpi-val" id="bPending" style="color:var(--accent-amber)">—</div><div class="kpi-label">Pending</div></div>
+          <div class="kpi"><div class="kpi-val" id="bCount">—</div><div class="kpi-label">Total Bills</div></div>
+        </div>
+        <canvas id="billingChart" height="140"></canvas>
+      </div>
+
+      <!-- Ward Occupancy -->
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header"><h2>Ward Occupancy Overview</h2></div>
+        <div id="wardReport" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/data.js"></script>
+<script>
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  const PALETTE = ['#00d4aa','#ff5e7e','#ffb547','#a78bfa','#4da6ff','#f97316','#06b6d4','#8b5cf6','#ec4899','#14b8a6'];
+
+  function drawPie(canvasId, labels, values, colors) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth; canvas.width = W; canvas.height = 200;
+    const cx = W/2, cy = 100, r = 75, ir = 45;
+    const total = values.reduce((a,b)=>a+b,0);
+    let angle = -Math.PI/2;
+    values.forEach((v,i) => {
+      const slice = (v/total)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,angle,angle+slice);
+      ctx.closePath();
+      ctx.fillStyle = colors[i%colors.length];
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx,cy,ir,0,Math.PI*2);
+      ctx.fillStyle = '#141926';
+      ctx.fill();
+      angle += slice;
+    });
+    ctx.fillStyle = '#e8eaf2';
+    ctx.font = 'bold 20px DM Serif Display';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(total, cx, cy);
+    ctx.font = '10px DM Sans';
+    ctx.fillStyle = '#8890a8';
+    ctx.fillText('total', cx, cy+16);
+  }
+
+  function drawBar(canvasId, labels, values, color) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth; canvas.width = W;
+    const H = canvas.height;
+    const pad = {t:10,r:10,b:30,l:10};
+    const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+    const max = Math.max(...values)*1.1||1;
+    const bw = cw/labels.length*0.6;
+    const gap = cw/labels.length;
+    ctx.clearRect(0,0,W,H);
+    values.forEach((v,i) => {
+      const x = pad.l + gap*i + (gap-bw)/2;
+      const bh = (v/max)*ch;
+      const y = pad.t + ch - bh;
+      const grad = ctx.createLinearGradient(0,y,0,pad.t+ch);
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, color+'33');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(x,y,bw,bh,4);
+      ctx.fill();
+      ctx.fillStyle = '#8890a8';
+      ctx.font = '10px DM Sans';
+      ctx.textAlign = 'center';
+      ctx.fillText(labels[i].slice(0,6), x+bw/2, pad.t+ch+16);
+      ctx.fillStyle = '#e8eaf2';
+      ctx.fillText(v, x+bw/2, y-4);
+    });
+  }
+
+  function buildLegend(containerId, labels, values, colors) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = labels.map((l,i) => `
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${colors[i%colors.length]}"></div>
+        ${l} (${values[i]})
+      </div>`).join('');
+  }
+
+  function buildKPIs() {
+    const patients = HMS.getPatients();
+    const doctors  = HMS.getDoctors();
+    const appts    = HMS.getAppointments();
+    const bills    = HMS.getBills();
+    const meds     = HMS.getMedicines();
+    const wards    = HMS.getWards();
+    const revenue  = bills.filter(b=>b.paid).reduce((s,b)=>s+b.items.reduce((a,i)=>a+i.fee,0),0);
+    const kpis = [
+      {label:'Patients',  val:patients.length,       color:'var(--accent-teal)'},
+      {label:'Doctors',   val:doctors.length,        color:'var(--accent-violet)'},
+      {label:'Appointments',val:appts.length,        color:'var(--accent-amber)'},
+      {label:'Bills',     val:bills.length,          color:'var(--accent-rose)'},
+      {label:'Medicines', val:meds.length,           color:'var(--accent-blue)'},
+      {label:'Revenue',   val:'₹'+Math.round(revenue/1000)+'K', color:'var(--accent-teal)'},
+    ];
+    document.getElementById('kpiStrip').innerHTML = kpis.map(k=>`
+      <div class="card" style="padding:14px;text-align:center">
+        <div style="font-family:var(--font-display);font-size:22px;color:${k.color}">${k.val}</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:3px">${k.label}</div>
+      </div>`).join('');
+  }
+
+  function buildStatusChart() {
+    const patients = HMS.getPatients();
+    const counts = {};
+    patients.forEach(p => counts[p.status]=(counts[p.status]||0)+1);
+    const labels = Object.keys(counts), values = Object.values(counts);
+    setTimeout(()=>{ drawPie('statusChart',labels,values,PALETTE); buildLegend('statusLegend',labels,values,PALETTE); },100);
+  }
+
+  function buildDeptChart() {
+    const patients = HMS.getPatients();
+    const counts = {};
+    patients.forEach(p => counts[p.dept]=(counts[p.dept]||0)+1);
+    const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const labels = entries.map(e=>e[0]), values = entries.map(e=>e[1]);
+    setTimeout(()=>{ drawPie('deptChart',labels,values,PALETTE.slice(3)); buildLegend('deptLegend',labels,values,PALETTE.slice(3)); },150);
+  }
+
+  function buildApptChart() {
+    const appts = HMS.getAppointments();
+    const counts = {};
+    appts.forEach(a => counts[a.type]=(counts[a.type]||0)+1);
+    const labels = Object.keys(counts), values = Object.values(counts);
+    setTimeout(()=>{ drawBar('apptChart',labels,values,'#a78bfa'); },200);
+  }
+
+  function buildBilling() {
+    const bills = HMS.getBills();
+    const paid = bills.filter(b=>b.paid).reduce((s,b)=>s+b.items.reduce((a,i)=>a+i.fee,0),0);
+    const unpaid = bills.filter(b=>!b.paid).reduce((s,b)=>s+b.items.reduce((a,i)=>a+i.fee,0),0);
+    document.getElementById('bTotalRev').textContent = HMS.formatCurrency(paid);
+    document.getElementById('bPending').textContent = HMS.formatCurrency(unpaid);
+    document.getElementById('bCount').textContent = bills.length;
+    setTimeout(()=>{ drawBar('billingChart',['Paid','Unpaid'],[paid/1000,unpaid/1000],'#00d4aa'); },250);
+  }
+
+  function buildWardReport() {
+    const wards = HMS.getWards();
+    const typeColors = {General:'#00d4aa',ICU:'#ff5e7e',Maternity:'#a78bfa',Pediatric:'#ffb547',Specialty:'#4da6ff',Private:'#f97316'};
+    document.getElementById('wardReport').innerHTML = wards.map(w => {
+      const pct = Math.round(w.occupied/w.capacity*100);
+      const c = typeColors[w.type]||'#00d4aa';
+      return `<div style="background:var(--bg-secondary);border-radius:var(--radius-sm);padding:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-size:13px;font-weight:600">${w.name}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${w.type} · Floor ${w.floor}</div>
+          </div>
+          <div style="font-size:18px;font-weight:700;font-family:var(--font-display);color:${c}">${pct}%</div>
+        </div>
+        <div style="background:var(--bg-primary);border-radius:99px;height:6px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${c};border-radius:99px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text-muted)">
+          <span>${w.occupied} occupied</span><span>${w.capacity-w.occupied} free</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  buildKPIs();
+  buildStatusChart();
+  buildDeptChart();
+  buildApptChart();
+  buildBilling();
+  buildWardReport();
+  window.addEventListener('resize', ()=>{
+    buildStatusChart(); buildDeptChart(); buildApptChart(); buildBilling();
+  });
+</script>
+</body>
+</html>

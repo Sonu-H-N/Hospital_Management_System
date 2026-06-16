@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Wards</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    .ward-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+    .ward-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;transition:all var(--transition);animation:fadeUp 0.3s ease both}
+    .ward-card:hover{transform:translateY(-2px);border-color:var(--border-light)}
+    .ward-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+    .ward-name{font-size:16px;font-weight:600;margin-bottom:2px}
+    .ward-type{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px}
+    .occ-bar-bg{background:var(--bg-secondary);border-radius:99px;height:8px;overflow:hidden;margin:14px 0 10px}
+    .occ-bar-fill{height:100%;border-radius:99px;transition:width 0.8s ease}
+    .ward-nums{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-muted)}
+    .ward-nums span{font-weight:600;color:var(--text-primary)}
+    .bed-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:14px}
+    .bed-cell{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s}
+    .bed-occupied{background:var(--accent-rose-dim);color:var(--accent-rose);border-color:rgba(255,94,126,.2)}
+    .bed-free{background:var(--accent-teal-dim);color:var(--accent-teal);border-color:rgba(0,212,170,.2)}
+  </style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo"><div class="logo-icon">✦</div><span class="logo-text">MediCore</span></div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item active"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info"><div class="user-name">Dr. Admin</div><div class="user-role">Super Admin</div></div>
+  </div>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Wards <span>/ Bed Management</span></div>
+    </div>
+    <div class="topbar-right"><div class="date-display" id="dateDisplay"></div></div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Ward & Bed Management</h1>
+    <p class="page-subtitle">Real-time overview of all wards and bed occupancy</p>
+
+    <!-- Summary -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px">
+      <div class="card" style="padding:16px"><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Total Beds</div><div style="font-family:var(--font-display);font-size:24px" id="totalBeds">—</div></div>
+      <div class="card" style="padding:16px"><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Occupied</div><div style="font-family:var(--font-display);font-size:24px;color:var(--accent-rose)" id="occupiedBeds">—</div></div>
+      <div class="card" style="padding:16px"><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Available</div><div style="font-family:var(--font-display);font-size:24px;color:var(--accent-teal)" id="availBeds">—</div></div>
+      <div class="card" style="padding:16px"><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Occupancy Rate</div><div style="font-family:var(--font-display);font-size:24px" id="occRate">—</div></div>
+    </div>
+
+    <div class="page-actions" style="margin-bottom:20px">
+      <div class="filter-bar">
+        <select id="typeFilter" onchange="render()">
+          <option value="">All Types</option>
+          <option>General</option><option>ICU</option><option>Maternity</option><option>Pediatric</option>
+          <option>Specialty</option><option>Private</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openModal()">➕ Add Ward</button>
+    </div>
+
+    <div class="ward-grid" id="wardGrid"></div>
+  </div>
+</main>
+
+<!-- Add/Edit Ward Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Ward</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ward Name *</label><input class="form-control" id="fName" placeholder="Ward name"/></div>
+      <div class="form-group"><label>Type</label>
+        <select class="form-control" id="fType">
+          <option>General</option><option>ICU</option><option>Maternity</option>
+          <option>Pediatric</option><option>Specialty</option><option>Private</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Capacity</label><input class="form-control" type="number" id="fCap" placeholder="Total beds"/></div>
+      <div class="form-group"><label>Currently Occupied</label><input class="form-control" type="number" id="fOcc" placeholder="Occupied beds"/></div>
+    </div>
+    <div class="form-group"><label>Floor</label><input class="form-control" type="number" id="fFloor" placeholder="Floor number"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWard()">Save Ward</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script>
+  let editId = null;
+  document.getElementById('dateDisplay').textContent =
+    new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  const typeColors = {
+    General:'var(--accent-teal)',ICU:'var(--accent-rose)',Maternity:'var(--accent-violet)',
+    Pediatric:'var(--accent-amber)',Specialty:'var(--accent-blue)',Private:'#f97316'
+  };
+
+  function updateSummary(wards) {
+    const total = wards.reduce((s,w)=>s+w.capacity,0);
+    const occ   = wards.reduce((s,w)=>s+w.occupied,0);
+    const avail = total - occ;
+    document.getElementById('totalBeds').textContent = total;
+    document.getElementById('occupiedBeds').textContent = occ;
+    document.getElementById('availBeds').textContent = avail;
+    document.getElementById('occRate').textContent = total ? Math.round(occ/total*100)+'%' : '0%';
+  }
+
+  function render() {
+    const tf = document.getElementById('typeFilter').value;
+    const wards = HMS.getWards().filter(w=>!tf||w.type===tf);
+    updateSummary(HMS.getWards());
+    const grid = document.getElementById('wardGrid');
+    grid.innerHTML = wards.map((w,i) => {
+      const pct = Math.round(w.occupied/w.capacity*100);
+      const color = typeColors[w.type]||'var(--accent-teal)';
+      const avail = w.capacity - w.occupied;
+      // Build bed cells
+      let beds = '';
+      for (let b=1; b<=Math.min(w.capacity, 20); b++) {
+        const isOcc = b <= w.occupied;
+        beds += `<div class="bed-cell ${isOcc?'bed-occupied':'bed-free'}" title="${isOcc?'Occupied':'Available'}">${b}</div>`;
+      }
+      if (w.capacity > 20) beds += `<div class="bed-cell" style="background:var(--bg-secondary);color:var(--text-muted);font-size:8px">+${w.capacity-20}</div>`;
+
+      return `<div class="ward-card" style="animation-delay:${i*0.05}s">
+        <div class="ward-top">
+          <div>
+            <div class="ward-name">${w.name}</div>
+            <div class="ward-type">${w.type} · Floor ${w.floor}</div>
+          </div>
+          <span class="badge-status" style="background:${color}22;color:${color}">${w.id}</span>
+        </div>
+        <div class="occ-bar-bg">
+          <div class="occ-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+        <div class="ward-nums">
+          <div>Occupied <span>${w.occupied}</span></div>
+          <div>Available <span>${avail}</span></div>
+          <div>Total <span>${w.capacity}</span></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);text-align:right;margin-top:4px">${pct}% occupancy</div>
+        <div class="bed-grid">${beds}</div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-sm btn-secondary" style="flex:1" onclick="editWard('${w.id}')">Edit Ward</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteWard('${w.id}')">Del</button>
+        </div>
+      </div>`;
+    }).join('') || '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:40px">No wards found</p>';
+  }
+
+  function openModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = 'Add Ward';
+    ['fName','fCap','fOcc','fFloor'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fType').value = 'General';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function editWard(id) {
+    editId = id;
+    const w = HMS.getWards().find(x=>x.id===id); if(!w) return;
+    document.getElementById('modalTitle').textContent = 'Edit Ward';
+    document.getElementById('fName').value = w.name;
+    document.getElementById('fType').value = w.type;
+    document.getElementById('fCap').value = w.capacity;
+    document.getElementById('fOcc').value = w.occupied;
+    document.getElementById('fFloor').value = w.floor;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function saveWard() {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { HMS.showToast('Ward name required','error'); return; }
+    const cap = parseInt(document.getElementById('fCap').value)||0;
+    const occ = parseInt(document.getElementById('fOcc').value)||0;
+    if (occ > cap) { HMS.showToast('Occupied cannot exceed capacity','error'); return; }
+    const wards = HMS.getWards();
+    const data = { name, type:document.getElementById('fType').value, capacity:cap, occupied:occ, floor:parseInt(document.getElementById('fFloor').value)||1 };
+    if (editId) {
+      const idx = wards.findIndex(w=>w.id===editId);
+      wards[idx] = {...wards[idx],...data};
+      HMS.showToast('Ward updated');
+    } else {
+      data.id = HMS.generateId('W', wards);
+      wards.push(data);
+      HMS.showToast('Ward added');
+    }
+    HMS.saveWards(wards);
+    closeModal(); render();
+  }
+
+  function deleteWard(id) {
+    if(!confirm('Delete this ward?')) return;
+    HMS.saveWards(HMS.getWards().filter(w=>w.id!==id));
+    HMS.showToast('Ward deleted'); render();
+  }
+
+  function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+  render();
+</script>
+</body>
+</html>

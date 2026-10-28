@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MediCore HMS — Patients</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">✦</div>
+    <span class="logo-text">MediCore</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="../index.html" class="nav-item"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="patients.html" class="nav-item active"><span class="nav-icon">◎</span> Patients</a>
+    <a href="doctors.html" class="nav-item"><span class="nav-icon">◈</span> Doctors</a>
+    <a href="appointments.html" class="nav-item"><span class="nav-icon">◷</span> Appointments</a>
+    <a href="billing.html" class="nav-item"><span class="nav-icon">◆</span> Billing</a>
+    <a href="pharmacy.html" class="nav-item"><span class="nav-icon">◉</span> Pharmacy</a>
+    <a href="wards.html" class="nav-item"><span class="nav-icon">▣</span> Wards</a>
+    <a href="reports.html" class="nav-item"><span class="nav-icon">◧</span> Reports</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div class="user-info">
+      <div class="user-name">Dr. Admin</div>
+      <div class="user-role">Super Admin</div>
+    </div>
+  </div>
+  <button class="btn btn-secondary btn-sm btn-block" id="logoutBtn" style="margin:10px 20px 4px;width:calc(100% - 40px)">🚪 Log out</button>
+</aside>
+
+<main class="main-content">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div class="breadcrumb">Patients <span>/ All Patients</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="date-display" id="dateDisplay"></div>
+    </div>
+  </header>
+
+  <div class="page-container">
+    <h1 class="page-title">Patient Records</h1>
+    <p class="page-subtitle">Manage and track all patient information</p>
+
+    <div class="page-actions">
+      <div class="filter-bar">
+        <input type="text" placeholder="🔍  Search by name, ID, or department…" id="searchInput" oninput="filterPatients()"/>
+        <select id="statusFilter" onchange="filterPatients()">
+          <option value="">All Status</option>
+          <option>Active</option>
+          <option>Admitted</option>
+          <option>Critical</option>
+          <option>Discharged</option>
+        </select>
+        <select id="deptFilter" onchange="filterPatients()">
+          <option value="">All Departments</option>
+          <option>Cardiology</option>
+          <option>Orthopedics</option>
+          <option>Neurology</option>
+          <option>Gynecology</option>
+          <option>Oncology</option>
+          <option>Dermatology</option>
+          <option>Pediatrics</option>
+          <option>ENT</option>
+          <option>Urology</option>
+          <option>Gastroenterology</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openAddModal()">➕ Add Patient</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>ID</th>
+            <th>Age / Gender</th>
+            <th>Blood</th>
+            <th>Department</th>
+            <th>Doctor</th>
+            <th>Admitted</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody"></tbody>
+      </table>
+    </div>
+    <div id="pagination" style="display:flex;gap:8px;margin-top:16px;align-items:center;justify-content:flex-end;flex-wrap:wrap"></div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add New Patient</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input class="form-control" type="text" id="fName" placeholder="Patient full name"/>
+      </div>
+      <div class="form-group">
+        <label>Age *</label>
+        <input class="form-control" type="number" id="fAge" min="0" max="120" placeholder="Age"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Gender</label>
+        <select class="form-control" id="fGender">
+          <option>Male</option><option>Female</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Blood Group</label>
+        <select class="form-control" id="fBlood">
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Phone</label>
+        <input class="form-control" type="tel" id="fPhone" placeholder="10-digit mobile"/>
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <select class="form-control" id="fDept">
+          <option>Cardiology</option><option>Orthopedics</option><option>Neurology</option>
+          <option>Gynecology</option><option>Oncology</option><option>Dermatology</option>
+          <option>Pediatrics</option><option>ENT</option><option>Urology</option>
+          <option>Gastroenterology</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Assigned Doctor</label>
+        <select class="form-control" id="fDoctor"></select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select class="form-control" id="fStatus">
+          <option>Active</option><option>Admitted</option><option>Critical</option><option>Discharged</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Admission Date</label>
+      <input class="form-control" type="date" id="fDate"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePatient()">Save Patient</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal-overlay" id="viewOverlay">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <h3>Patient Details</h3>
+      <button class="modal-close" onclick="document.getElementById('viewOverlay').classList.remove('open')">✕</button>
+    </div>
+    <div id="viewContent"></div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/ui.js"></script>
+<script src="../js/auth-guard.js"></script>
+<script src="../js/patients.js"></script>
+</body>
+</html>

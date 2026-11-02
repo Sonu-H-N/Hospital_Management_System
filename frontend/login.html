@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediCore HMS — Staff Login</title>
+<link rel="stylesheet" href="css/main.css"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body class="auth-page">
+
+<main class="auth-card">
+  <div class="auth-brand">
+    <div class="logo-icon">✦</div>
+    <span>MediCore</span>
+  </div>
+
+  <h2>Staff sign in</h2>
+  <p class="sub">Sign in with your hospital staff account.</p>
+
+  <div id="formError" class="auth-error" role="alert"></div>
+
+  <form id="loginForm" novalidate>
+    <div class="form-group">
+      <label>Email</label>
+      <input class="form-control" type="email" id="email" autocomplete="email" required/>
+      <span class="field-error" data-error-for="email"></span>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input class="form-control" type="password" id="password" autocomplete="current-password" required/>
+      <span class="field-error" data-error-for="password"></span>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Sign in</button>
+  </form>
+
+  <p class="auth-switch">New staff member? <a href="register.html">Create an account</a></p>
+
+  <div class="auth-demo">
+    <strong>Demo logins</strong><br/>
+    Admin: admin@medicore.in / admin1234<br/>
+    Doctor: priya.nair@medicore.in / doctor1234<br/>
+    Receptionist: reception@medicore.in / reception1234<br/>
+    Pharmacist: pharmacy@medicore.in / pharmacy1234
+  </div>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>

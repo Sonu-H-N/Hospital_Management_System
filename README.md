@@ -3,8 +3,8 @@
 A hospital-wide staff system: manage patients, doctors, appointments,
 billing, pharmacy inventory, and ward/bed occupancy, with a live
 dashboard and analytics. Multiple staff members (Admin, Doctor,
-Receptionist, Pharmacist) can be logged in at once, all working from
-the same shared, persistent hospital data.
+Receptionist, Pharmacist) can be logged in at once, all working from the
+same shared, persistent hospital data.
 
 This was upgraded from a single-user, browser-only demo (fake login,
 all data in `localStorage`) into a real client/server application with
@@ -23,7 +23,7 @@ medicore-hms/
 │   │   ├── middleware/          auth (JWT + roles), validation, errors
 │   │   ├── routes/              patients, doctors, appointments,
 │   │   │                        billing, pharmacy, wards, dashboard,
-│   │   │                        reports, auth
+│   │   │                        reports, auth, chatbot
 │   │   └── services/            friendly-ID generator (P-1001, D-001…)
 │   └── data/                   medicore.db (SQLite file, gitignored)
 │
@@ -32,12 +32,8 @@ medicore-hms/
     ├── login.html / register.html
     ├── pages/                  patients, doctors, appointments,
     │                           billing, pharmacy, wards, reports
-    ├── css/                    Design system (unchanged visual identity)
-    └── js/
-        ├── api.js               fetch wrapper, session storage
-        ├── ui.js                 toasts, confirm dialogs, formatters
-        ├── auth-guard.js          per-page login check + role-based UI
-        └── <page>.js              one file per page, calls the API
+    ├── css/                    Design system and chatbot widget
+    └── js/                     API, auth guard, chatbot, and page scripts
 ```
 
 **Why this stack:** the original project was vanilla HTML/CSS/JS with
@@ -55,7 +51,7 @@ single-file database with nothing extra to provision.
 ```bash
 cd backend
 npm install
-cp .env.example .env       # then edit JWT_SECRET (see below)
+cp .env.example .env       # edit JWT_SECRET and optionally configure the assistant
 npm run seed                 # creates 4 demo staff accounts + sample data
 npm start                    # http://localhost:4100
 ```
@@ -92,6 +88,30 @@ Register a new staff account, or use a seeded demo account:
 
 ---
 
+## AI staff assistant
+
+A floating assistant is available on authenticated pages. It answers
+basic questions about navigating MediCore and general administrative
+workflows. It does **not** access hospital records and must not be used
+for diagnoses, treatment, medication advice, or emergencies. Never enter
+patient-identifiable or confidential health information into the chat.
+Assistant conversations are held in browser memory only and are sent to
+the configured AI provider for a response.
+
+To enable it, add an OpenAI API key to `backend/.env` and restart the API:
+
+```dotenv
+OPENAI_API_KEY=your_private_api_key
+OPENAI_MODEL=gpt-4o-mini
+```
+
+Keep the key on the server; never add it to frontend code or commit it.
+The chatbot endpoint requires a valid staff login and is rate limited.
+Without a key configured, the rest of the hospital system continues to
+work and the assistant displays a configuration message.
+
+---
+
 ## Roles & permissions
 
 All logged-in staff can view and manage patients, appointments,
@@ -121,6 +141,8 @@ it directly.
 | `DB_PATH` | SQLite file location | No (default `./data/medicore.db`) |
 | `AUTH_RATE_LIMIT_MAX` | Login/register attempts per 15 min per IP | No (default 10) |
 | `API_RATE_LIMIT_MAX` | General API requests per 15 min per IP | No (default 300) |
+| `OPENAI_API_KEY` | Server-side key for the optional AI assistant | No |
+| `OPENAI_MODEL` | OpenAI chat model (default `gpt-4o-mini`) | No |
 
 No secrets are hardcoded anywhere — `.env` is gitignored, and
 `.env.example` documents every variable without real values.
@@ -217,12 +239,12 @@ teal/rose/amber/violet accents) is unchanged.
   multi-hospital SaaS product, add a `hospital_id` scope to every table
   and swap in Postgres for concurrent write load.
 - **No audit log** — for a real clinical system, tracking who changed
-  what (especially for patient records) would be a natural next step.
+  what (especially patient records) would be a natural next step.
 - **No password reset flow** — needs an email provider (Resend, SES).
 - **Dispense isn't linked to a specific patient/bill** — the dispense
   modal lets staff optionally note which patient it's for, but stock
-  deduction is inventory-only; wiring dispensed medicines into that
-  patient's bill automatically would be a good enhancement.
+deduction is inventory-only; wiring dispensed medicines into that
+patient's bill automatically would be a good enhancement.
 - **No automated test suite** — verified manually here via curl
   (API) and Playwright (UI flows, RBAC, mobile layout); adding
   Jest/Supertest and Playwright tests would help long-term.

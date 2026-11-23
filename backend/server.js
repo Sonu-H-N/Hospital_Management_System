@@ -15,6 +15,7 @@ const pharmacyRoutes = require("./src/routes/pharmacy.routes");
 const wardRoutes = require("./src/routes/wards.routes");
 const dashboardRoutes = require("./src/routes/dashboard.routes");
 const reportsRoutes = require("./src/routes/reports.routes");
+const chatbotRoutes = require("./src/routes/chatbot.routes");
 const { notFound, errorHandler } = require("./src/middleware/errorHandler");
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.includes("replace_this")) {
@@ -57,6 +58,7 @@ app.use("/api/pharmacy", pharmacyRoutes);
 app.use("/api/wards", wardRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 app.use("/api", notFound);
 app.use(errorHandler);

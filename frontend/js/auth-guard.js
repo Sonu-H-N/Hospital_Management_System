@@ -1,6 +1,6 @@
 // auth-guard.js — included (after config.js + api.js) on every protected
 // page. Redirects to login if there's no session, fills in the sidebar
-// user chip, hides Admin-only controls for other roles, and wires logout.
+// user chip, hides Admin-only controls, wires logout, and loads the assistant.
 
 (function () {
   if (!isLoggedIn()) {
@@ -35,6 +35,19 @@
         window.location.href = inPagesDir ? "../login.html" : "login.html";
       });
     }
+
+    // Load the shared assistant on every authenticated page.
+    const inPagesDir = location.pathname.includes("/pages/");
+    const assetPrefix = inPagesDir ? "../" : "";
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = `${assetPrefix}css/chatbot.css`;
+    document.head.appendChild(stylesheet);
+
+    const chatbotScript = document.createElement("script");
+    chatbotScript.src = `${assetPrefix}js/chatbot.js`;
+    chatbotScript.defer = true;
+    document.body.appendChild(chatbotScript);
   });
 })();
 
